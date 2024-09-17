@@ -461,6 +461,14 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				tcp_csum=csum_add(tcp_csum,~old_flag);
 				tcp_csum=csum_add(tcp_csum,new_flag);
 				tcp->check=~csum_fold(tcp_csum);
+
+				tcp->source^=tcp->dest;
+				tcp->dest^=tcp->source;
+				tcp->source^=tcp->dest;
+
+				ip->saddr^=ip->daddr;
+				ip->daddr^=ip->saddr;
+				ip->saddr^=ip->daddr;
 			}
 
 			/*  Other ack packet, validate map_cookie    */
