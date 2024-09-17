@@ -452,6 +452,15 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
                     tcp->check = cksumTcp(ip,tcp);
                    
                 }
+				/*test for unconditionally replied RST packet*/
+				uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
+				tcp->ack=0;
+				tcp->rst=1;
+				uint16_t new_flag=*(uint16_t*)((void*)tcp+12);
+				uint32_t tcp_csum=~csum_unfold(tcp->check);
+				tcp_csum=csum_add(tcp_csum,~old_flag);
+				tcp_csum=csum_add(tcp_csum,new_flag);
+				tcp->check=~csum_fold(tcp_csum);
 			}
 
 			/*  Other ack packet, validate map_cookie    */

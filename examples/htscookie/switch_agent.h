@@ -26,6 +26,7 @@
 #include "pthread.h"
 #include "fnv.h"
 #include "address.h"
+#include "bloom.h"
 
 #define MSTONS 1000000
 #define TS_START bpf_ntohl(0x01010000)
