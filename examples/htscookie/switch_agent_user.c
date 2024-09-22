@@ -454,12 +454,24 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
                 }
 				/*test for unconditionally replied RST packet*/
 				uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
-				tcp->ack=0;
 				tcp->rst=1;
+				tcp->ack=0;
 				uint16_t new_flag=*(uint16_t*)((void*)tcp+12);
+				uint16_t old_win=tcp->window;
+				tcp->window=0;
+				uint32_t old_ack=tcp->ack_seq;
+				uint32_t old_seq=tcp->seq;
+				tcp->seq=old_ack;
+				tcp->ack_seq=old_ack+1;
 				uint32_t tcp_csum=~csum_unfold(tcp->check);
 				tcp_csum=csum_add(tcp_csum,~old_flag);
 				tcp_csum=csum_add(tcp_csum,new_flag);
+				tcp_csum=csum_add(tcp_csum,~old_win);
+				tcp_csum=csum_add(tcp_csum,0);
+				tcp_csum=csum_add(tcp_csum,~old_ack);
+				tcp_csum=csum_add(tcp_csum,tcp->ack_seq);
+				tcp_csum=csum_add(tcp_csum,~old_seq);
+				tcp_csum=csum_add(tcp_csum,tcp->seq);
 				tcp->check=~csum_fold(tcp_csum);
 
 				tcp->source^=tcp->dest;
