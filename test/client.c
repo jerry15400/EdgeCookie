@@ -9,12 +9,14 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+char buf[8192];
+char request[1024];
+char request_template[]="GET / HTTP/1.1\r\nHost: %s\r\n\r\n";
+int request_len;
+int sendReq(int);
+
 int main()
 {
-    char buf[8192];
-    char request[1024];
-    char request_template[]="GET / HTTP/1.1\r\nHost: %s\r\n\r\n";
-    int request_len=snprintf(request,1024,request_template,"10.19.0.3");
     int sock=socket(AF_INET,SOCK_STREAM,0);
     if(sock==-1)
     {
@@ -31,7 +33,17 @@ int main()
         printf("connect error\n");
         return -1;
     }
-    int total=0,last;
+    while(sendReq(sock))
+    {
+        printf("RST\n");
+        sleep(0.2);
+        if(connect(sock,(struct sockaddr*)&info,sizeof(info))==-1)
+        {
+            printf("connect error\n");
+            return -1;
+        }
+    }
+    /*int total=0,last;
     while(total<request_len)
     {
 	last=write(sock,request+total,request_len-total);
@@ -43,6 +55,24 @@ int main()
 	total+=last;
     }
     while((total=read(sock,buf,8192))>0);
-    if(total==-1) exit(-1);
+    if(total==-1) exit(-1);*/
     return 0;
+}
+
+int sendReq(int sock)
+{
+    request_len=snprintf(request,1024,request_template,"10.19.0.3");
+    int total=0,last;
+    while(total<request_len)
+    {
+        last=write(sock,request+total,request_len-total);
+        if(last==-1)
+        {
+            perror("write");
+            exit(-1);
+        }
+        total+=last;
+    }
+    while((total=read(sock,buf,8192))>0);
+    return errno==ECONNRESET;
 }
