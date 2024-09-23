@@ -5,6 +5,7 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <errno.h>
 #include <arpa/inet.h>
 
 int main()
@@ -24,11 +25,6 @@ int main()
     {
         printf("connect error\n");
         return -1;
-    }
-    char buf[5000];
-    while(~recv(sock,buf,4096,0))
-    {
-        printf("%s\n",buf);
     }
     return 0;
 }
