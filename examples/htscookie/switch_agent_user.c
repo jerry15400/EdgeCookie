@@ -263,7 +263,6 @@ static void init_global_maps(){
 /* Main packet processing logic*/
 int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, unsigned worker_id)
 {
-	
 	if(opt_drop==1){
 		return -1;
 	}
