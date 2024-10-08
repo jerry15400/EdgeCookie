@@ -455,7 +455,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
                    
                 }
 				/*test for unconditionally replied RST packet*/
-				if(!bloom_filter_test(bf,ip->saddr,4))
+				if(!bloom_filter_test(bf,&ip->saddr,4))
 				{
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
 					tcp->rst=1;
@@ -481,7 +481,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					tcp->source^=tcp->dest;
 					tcp->dest^=tcp->source;
 					tcp->source^=tcp->dest;
-					bloom_filter_put(bf,ip->saddr,4);
+					bloom_filter_put(bf,&ip->saddr,4);
 					ip->saddr^=ip->daddr;
 					ip->daddr^=ip->saddr;
 					ip->saddr^=ip->daddr;
