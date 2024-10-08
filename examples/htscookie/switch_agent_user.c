@@ -486,6 +486,10 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					ip->daddr^=ip->saddr;
 					ip->saddr^=ip->daddr;
 				}
+				else
+				{
+					printf("bloom filter not found ip\n");
+				}
 			}
 
 			/*  Other ack packet, validate map_cookie    */
