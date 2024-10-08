@@ -460,6 +460,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					ip->daddr^=ip->saddr;
 					ip->saddr^=ip->daddr;
 				}*/
+				printf("AAAAAAAAA\n");
                 /*  TCP data length = 0  , conctate apache opt*/
                 //printf("%d\n",bpf_ntohs(ip->tot_len) - (ip->ihl*4) - (tcp->doff*4));
                 if(opt_ab_test && (!(bpf_ntohs(ip->tot_len) - (ip->ihl*4) - (tcp->doff*4)))){
