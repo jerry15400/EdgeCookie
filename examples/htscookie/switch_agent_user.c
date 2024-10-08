@@ -488,7 +488,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				}
 				else
 				{
-					printf("bloom filter not found ip\n");
+					printf("bloom filter found the ip\n");
 				}
 			}
 
