@@ -61,6 +61,9 @@ static const int c1 = 0x6e646f6d;
 static const int c2 = 0x6e657261;
 static const int c3 = 0x79746573;
 
+/*new things for TCP reset*/
+static bloom_filter *bf;
+
 extern int global_workers_num;
 
 static void init_salt(){
@@ -452,34 +455,37 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
                    
                 }
 				/*test for unconditionally replied RST packet*/
-				uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
-				tcp->rst=1;
-				tcp->ack=0;
-				uint16_t new_flag=*(uint16_t*)((void*)tcp+12);
-				uint16_t old_win=tcp->window;
-				tcp->window=0;
-				uint32_t old_ack=tcp->ack_seq;
-				uint32_t old_seq=tcp->seq;
-				tcp->seq=old_ack;
-				tcp->ack_seq=old_ack+1;
-				uint32_t tcp_csum=~csum_unfold(tcp->check);
-				tcp_csum=csum_add(tcp_csum,~old_flag);
-				tcp_csum=csum_add(tcp_csum,new_flag);
-				tcp_csum=csum_add(tcp_csum,~old_win);
-				tcp_csum=csum_add(tcp_csum,0);
-				tcp_csum=csum_add(tcp_csum,~old_ack);
-				tcp_csum=csum_add(tcp_csum,tcp->ack_seq);
-				tcp_csum=csum_add(tcp_csum,~old_seq);
-				tcp_csum=csum_add(tcp_csum,tcp->seq);
-				tcp->check=~csum_fold(tcp_csum);
-
-				tcp->source^=tcp->dest;
-				tcp->dest^=tcp->source;
-				tcp->source^=tcp->dest;
-
-				ip->saddr^=ip->daddr;
-				ip->daddr^=ip->saddr;
-				ip->saddr^=ip->daddr;
+				if(!bloom_filter_test(bf,ip->saddr,4))
+				{
+					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
+					tcp->rst=1;
+					tcp->ack=0;
+					uint16_t new_flag=*(uint16_t*)((void*)tcp+12);
+					uint16_t old_win=tcp->window;
+					tcp->window=0;
+					uint32_t old_ack=tcp->ack_seq;
+					uint32_t old_seq=tcp->seq;
+					tcp->seq=old_ack;
+					tcp->ack_seq=old_ack+1;
+					uint32_t tcp_csum=~csum_unfold(tcp->check);
+					tcp_csum=csum_add(tcp_csum,~old_flag);
+					tcp_csum=csum_add(tcp_csum,new_flag);
+					tcp_csum=csum_add(tcp_csum,~old_win);
+					tcp_csum=csum_add(tcp_csum,0);
+					tcp_csum=csum_add(tcp_csum,~old_ack);
+					tcp_csum=csum_add(tcp_csum,tcp->ack_seq);
+					tcp_csum=csum_add(tcp_csum,~old_seq);
+					tcp_csum=csum_add(tcp_csum,tcp->seq);
+					tcp->check=~csum_fold(tcp_csum);
+					
+					tcp->source^=tcp->dest;
+					tcp->dest^=tcp->source;
+					tcp->source^=tcp->dest;
+					bloom_filter_put(bf,ip->saddr,4);
+					ip->saddr^=ip->daddr;
+					ip->daddr^=ip->saddr;
+					ip->saddr^=ip->daddr;
+				}
 			}
 
 			/*  Other ack packet, validate map_cookie    */
@@ -744,7 +750,7 @@ int swich_agent (int argc, char **argv){
     init_sa_apache_opts();
 	init_MAC();
 	init_ip();
-
+	bf=bloom_filter_new(3145728, 3, djb2,sdbm,mm2);
     /*  Constant for Haraka */
 	load_constants();
 
