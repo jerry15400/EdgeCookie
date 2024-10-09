@@ -294,7 +294,14 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 		flows[worker_id].src_port = tcp->source;
 		flows[worker_id].dst_port = tcp->source;
         /*option len*/
-		printf("option len=%d\n",tcp->doff*4-20);
+		int opt_len=tcp->doff*4-20;
+		char *ptr=tcp+1;
+		printf("option len=%d\n",opt_len);
+		for(int i=0;i<opt_len;i++)
+		{
+			printf("%x\n",*(ptr+i));
+		}
+		printf("\n\n");
         /*  Ingrss SYN packet*/
 		if(tcp->syn && (!tcp->ack)) {
 			
