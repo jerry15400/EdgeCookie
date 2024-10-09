@@ -297,6 +297,12 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
         /*  Ingrss SYN packet*/
 		if(tcp->syn && (!tcp->ack)) {
 			
+			/*if in bf -> pass directly*/
+			if(bloom_filter_test(bf,&ip->saddr,4))
+			{
+				return forward(eth,ip);
+			}
+
             /*  Parse timestamp */
 			struct tcp_opt_ts* ts;
 			int opt_ts_offset = 0;
@@ -429,7 +435,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					return -1;
 				}
 				/*test for unconditionally replied RST packet*/
-				/*if(!bloom_filter_test(bf,&ip->saddr,4))
+				if(!bloom_filter_test(bf,&ip->saddr,4))
 				{
 					bloom_filter_put(bf,&ip->saddr,4);
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
@@ -459,8 +465,8 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					ip->saddr^=ip->daddr;
 					ip->daddr^=ip->saddr;
 					ip->saddr^=ip->daddr;
-				}*/
-				printf("AAAAAAAAA\n");
+				}
+				
                 /*  TCP data length = 0  , conctate apache opt*/
                 //printf("%d\n",bpf_ntohs(ip->tot_len) - (ip->ihl*4) - (tcp->doff*4));
                 if(opt_ab_test && (!(bpf_ntohs(ip->tot_len) - (ip->ihl*4) - (tcp->doff*4)))){
