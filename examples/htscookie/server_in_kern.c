@@ -199,9 +199,31 @@ SEC("prog") int xdp_router(struct xdp_md *ctx) {
             if(tcphdr_len >= 32)
             { 
                 struct tcp_opt_ts* ts;
-
+                /*Inbound syn packets*/
+                if(tcp->syn&&(!tcp->ack))
+                {
+                    int opt_ts_offset = parse_timestamp(&cur,tcp,data_end,&ts);
+                    if(opt_ts_offset==-1) return XDP_DROP;
+                    void* tcp_header_end = (void*)tcp + (tcp->doff*4);
+                    if(tcp_header_end > data_end) return XDP_DROP;
+                    if(!ts->tsecr) return XDP_DROP;
+                    struct map_key_t key = {
+                        .src_ip = ip->saddr,
+                        .dst_ip = ip->daddr,
+                        .src_port = tcp->source,
+                        .dst_port = tcp->dest
+                    };
+                    /*calculate and store hybrid_cookie for TC in advance*/
+                    uint16_t seed_key=ip->saddr&0xffff;
+                    struct map_val_t val = {.delta = 0,.hash_cookie = ts->tsecr,
+                                            .hybrid_cookie=bpf_htonl(0x40000000+(0x3fffffff&get_hybrid_cookie(ts->tsecr,ip->saddr,map_seeds[seed_key]))),
+                                            .cur_hash_seed=map_seeds[seed_key]
+                    };
+                    ts->tsecr=0;
+                    bpf_map_update_elem(&conntrack_map, &key, &val, BPF_ANY);
+                }
                 /*  Inbound ack packets */
-                if(tcp->ack && (!tcp->syn))
+                else if(tcp->ack && (!tcp->syn))
                 {
 
                     /*  Parse timestamp */
@@ -281,8 +303,10 @@ SEC("prog") int xdp_router(struct xdp_md *ctx) {
                         struct map_val_t* val_p = bpf_map_lookup_elem(&conntrack_map,&key);
 
                         /*  Flow exist */
-                        if(val_p) {
+                        if(val_p)
+                        {
                             DEBUG_PRINT ("SERVER_IN: Connection exist in map!\n");
+
                         }
 
                         /*  Flow not exist  */

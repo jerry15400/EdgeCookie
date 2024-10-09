@@ -11,12 +11,6 @@ struct tcp_opt_ts
 	uint32_t tsecr;
 } __attribute__((packed));
 
-struct tcp_opt_exp
-{
-	uint8_t kind;
-	uint8_t length;
-	uint32_t hash_cookie;
-} __attribute__((packed));
 
 // parse_timestamp's offset from tcp's basic 20 bytes header
 // Return offset

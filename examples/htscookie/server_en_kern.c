@@ -90,8 +90,16 @@ SEC("prog") int xdp_router(struct __sk_buff *skb) {
                     
                     DEBUG_PRINT("TC: Update delta = detla(%u) - SYNACK's seg(%u) - 1= %u\n", 
                                 val.delta, bpf_htonl(tcp->seq) ,val.delta - (tcp->seq + (bpf_htonl(1))));
-                    
                 
+                    if(val_p&&!val.delta) //rst connection
+                    {
+                        //insert hybird cookie into tsval
+                        val.ts_val_s = ts->tsval;
+                        bpf_map_update_elem(&conntrack_map,&key,&val,BPF_EXIST);
+                        ts->tsval=val.hybrid_cookie;
+                        return TC_ACT_OK;
+                    }
+
                     val.delta = val.delta - bpf_ntohl(tcp->seq) - 1;
                     val.ts_val_s = ts->tsval;
 

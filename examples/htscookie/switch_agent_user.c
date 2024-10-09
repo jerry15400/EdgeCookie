@@ -63,6 +63,7 @@ static const int c3 = 0x79746573;
 
 /*new things for TCP reset*/
 static bloom_filter *bf;
+static uint32_t syn_cache[10000000];
 
 extern int global_workers_num;
 
@@ -293,23 +294,11 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 	    flows[worker_id].dst_ip = ip->daddr;
 		flows[worker_id].src_port = tcp->source;
 		flows[worker_id].dst_port = tcp->source;
-        /*option len*/
-		int opt_len=tcp->doff*4-20;
-		char *ptr=tcp+1;
-		printf("option len=%d\n",opt_len);
-		for(int i=0;i<opt_len;i++)
-		{
-			printf("%x\n",*(ptr+i));
-		}
-		printf("\n\n");
+        
         /*  Ingrss SYN packet*/
 		if(tcp->syn && (!tcp->ack)) {
 			
 			/*if in bf -> pass directly*/
-			if(bloom_filter_test(bf,&ip->saddr,4))
-			{
-				return forward(eth,ip);
-			}
 
             /*  Parse timestamp */
 			struct tcp_opt_ts* ts;
@@ -324,6 +313,14 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 			ts = (tcp_opt + opt_ts_offset);
 			if((void*)(ts + 1) > pkt_end){
 				return -1;
+			}
+			if(bloom_filter_test(bf,&ip->saddr,4))
+			{
+				printf("tsecr=%d\n",ts->tsecr);
+				int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
+				ts->tsecr=syn_cache[index];
+				syn_cache[index]=0;
+				return forward(eth,ip);
 			}
 			
 			/*  Store old option and header info, then put a new synack option,
@@ -445,9 +442,12 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					return -1;
 				}
 				/*test for unconditionally replied RST packet*/
-				/*if(!bloom_filter_test(bf,&ip->saddr,4))
+				if(!bloom_filter_test(bf,&ip->saddr,4))
 				{
 					bloom_filter_put(bf,&ip->saddr,4);
+					int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
+					while(!syn_cache[index]);
+					syn_cache[index]=hashcookie;
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
 					tcp->rst=1;
 					tcp->ack=0;
@@ -475,7 +475,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					ip->saddr^=ip->daddr;
 					ip->daddr^=ip->saddr;
 					ip->saddr^=ip->daddr;
-				}*/
+				}
 				
                 /*  TCP data length = 0  , conctate apache opt*/
                 //printf("%d\n",bpf_ntohs(ip->tot_len) - (ip->ihl*4) - (tcp->doff*4));
