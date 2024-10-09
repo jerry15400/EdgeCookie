@@ -317,6 +317,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 			if(bloom_filter_test(bf,&ip->saddr,4))
 			{
 				printf("tsecr=%d\n",ts->tsecr);
+				printf("second syn found in bloom filter\n");
 				int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
 				ts->tsecr=syn_cache[index];
 				syn_cache[index]=0;
@@ -444,9 +445,9 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				/*test for unconditionally replied RST packet*/
 				if(!bloom_filter_test(bf,&ip->saddr,4))
 				{
+					printf("not in bloom filter\n");
 					bloom_filter_put(bf,&ip->saddr,4);
 					int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
-					while(!syn_cache[index]);
 					syn_cache[index]=hashcookie;
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
 					tcp->rst=1;
