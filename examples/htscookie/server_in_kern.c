@@ -196,11 +196,13 @@ SEC("prog") int xdp_router(struct xdp_md *ctx) {
             }
 
             /*  Packet with option  */
-            if(tcphdr_len >= 32){ 
+            if(tcphdr_len >= 32)
+            { 
                 struct tcp_opt_ts* ts;
 
                 /*  Inbound ack packets */
-                if(tcp->ack && (!tcp->syn)){
+                if(tcp->ack && (!tcp->syn))
+                {
 
                     /*  Parse timestamp */
                     int opt_ts_offset = parse_timestamp(&cur,tcp,data_end,&ts);
@@ -406,7 +408,8 @@ SEC("prog") int xdp_router(struct xdp_md *ctx) {
 
                 /*  server_en will redirect server's synack to server_in,
                     so convert synack to ack and send to server (only in SKB mode)*/
-                else if(tcp->ack && tcp->syn){
+                else if(tcp->ack && tcp->syn)
+                {
                     __u64 tcp_csum = tcp->check;
                     __u32* ptr ; 
 

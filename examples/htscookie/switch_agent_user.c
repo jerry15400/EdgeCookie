@@ -293,7 +293,8 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 	    flows[worker_id].dst_ip = ip->daddr;
 		flows[worker_id].src_port = tcp->source;
 		flows[worker_id].dst_port = tcp->source;
-        
+        /*option len*/
+		printf("option len=%d\n",tcp->doff*4-20);
         /*  Ingrss SYN packet*/
 		if(tcp->syn && (!tcp->ack)) {
 			
@@ -324,7 +325,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
             uint32_t rx_tsecr = ts->tsecr;
             ts->tsecr = rx_tsval;
             ts->tsval = TS_START;
-
+			
 
             if(!opt_ab_test){
                 int delta = (int)(sizeof(struct tcphdr) + sizeof(struct common_synack_opt)) - (tcp->doff*4);
@@ -410,7 +411,8 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 		}
 
         /*  Ingress ACK     */
-		else if(tcp->ack && !(tcp->syn)){
+		else if(tcp->ack && !(tcp->syn))
+		{
 
             /*  Parse timestamp */
 			struct tcp_opt_ts* ts;
@@ -423,7 +425,8 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 
             /*  If timestamp == TS_START, validate syncookie  */
 			uint32_t hashcookie = 0;
-			if (ts->tsecr == TS_START && !(tcp->syn)){
+			if (ts->tsecr == TS_START && !(tcp->syn))
+			{
 				if(hash_option == HARAKA)
 					haraka256((uint8_t*)&hashcookie, (uint8_t*)&flows[worker_id], 4 , 32);
 				
@@ -435,7 +438,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					return -1;
 				}
 				/*test for unconditionally replied RST packet*/
-				if(!bloom_filter_test(bf,&ip->saddr,4))
+				/*if(!bloom_filter_test(bf,&ip->saddr,4))
 				{
 					bloom_filter_put(bf,&ip->saddr,4);
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
@@ -465,7 +468,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					ip->saddr^=ip->daddr;
 					ip->daddr^=ip->saddr;
 					ip->saddr^=ip->daddr;
-				}
+				}*/
 				
                 /*  TCP data length = 0  , conctate apache opt*/
                 //printf("%d\n",bpf_ntohs(ip->tot_len) - (ip->ihl*4) - (tcp->doff*4));
