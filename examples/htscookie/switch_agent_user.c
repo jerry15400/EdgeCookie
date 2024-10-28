@@ -63,7 +63,7 @@ static const int c3 = 0x79746573;
 
 /*new things for TCP reset*/
 static bloom_filter *bf;
-static uint32_t syn_cache[10000000];
+static char map_path[]="/sys/fs/bpf/xdp/globals/time_map";
 
 extern int global_workers_num;
 
@@ -267,6 +267,8 @@ static void init_global_maps(){
 /* Main packet processing logic*/
 int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, unsigned worker_id)
 {
+	time_t t;
+	time(&t);
 	if(opt_drop==1){
 		return -1;
 	}
@@ -316,11 +318,6 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 			}
 			if(bloom_filter_test(bf,&ip->saddr,4))
 			{
-				//int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
-				//ts->tsecr=syn_cache[index];
-				//syn_cache[index]=0;
-				
-				/*ts->tsecr=hashcookie*/
 				if(hash_option == HARAKA)
 					haraka256((uint8_t*)&(ts->tsecr), (uint8_t*)&flows[worker_id], 4 , 32);
 				
@@ -358,8 +355,21 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
                 ip_csum = csum_add(ip_csum,new_ip_totlen);
                 ip->check = ~csum_fold(ip_csum);
             }
+
+			int fd;
+			fd=bpf_obj_get(map_path);
             
-			
+			struct map_key_t key = {
+				.src_ip = ip->saddr,
+				.dst_ip = ip->daddr,
+				.src_port = tcp->source,
+				.dst_port = tcp->dest
+			};
+
+			struct map_val_t val = {.t=t};
+			printf("store time %ld\n",t);
+
+			bpf_map_update_elem(fd,&key,&val,BPF_ANY);
 
 			/*  Swap address    */
 			ip->saddr ^= ip->daddr;
@@ -417,6 +427,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
             
 			if(opt_pressure == 1)
 				return -1;
+			
 
 			return forward(eth,ip);
 		}
@@ -438,6 +449,22 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 			uint32_t hashcookie = 0;
 			if (ts->tsecr == TS_START && !(tcp->syn))
 			{
+				int fd=bpf_obj_get(map_path);
+				struct map_key_t key = {
+					.src_ip = ip->saddr,
+					.dst_ip = ip->daddr,
+					.src_port = tcp->source,
+					.dst_port = tcp->dest
+				};
+
+				struct map_val_t val;
+				struct map_val_t* val_p = bpf_map_lookup_elem(fd,&key,&val);
+
+				if(val_p)
+				{
+					printf("found time %ld\n",val.t);
+				}
+
 				if(hash_option == HARAKA)
 					haraka256((uint8_t*)&hashcookie, (uint8_t*)&flows[worker_id], 4 , 32);
 				
@@ -451,10 +478,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				/*test for unconditionally replied RST packet*/
 				if(!bloom_filter_test(bf,&ip->saddr,4))
 				{
-					printf("not in bloom filter\n");
 					bloom_filter_put(bf,&ip->saddr,4);
-					//int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
-					//syn_cache[index]=hashcookie;
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
 					tcp->rst=1;
 					tcp->ack=0;
@@ -515,6 +539,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 			/*  Other ack packet, validate map_cookie    */
 			else{
 				uint32_t hybrid_cookie = ntohl(ts->tsecr);
+				/*todo: delete bloomfilter item */
 				if(((hybrid_cookie & 0xffff) == get_map_cookie_sip(ip->saddr))){
 					// printf("Switch agent: Pass map_cookie, map cookie = %u, cal_map_cookie = %u\n"
 					// 															,hybrid_cookie & 0xffff

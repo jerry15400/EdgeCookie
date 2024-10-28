@@ -28,6 +28,7 @@
 #include "address.h"
 #include "bloom.h"
 #include "hashf.h"
+#include <time.h>
 
 #define MSTONS 1000000
 #define TS_START bpf_ntohl(0x01010000)
@@ -78,6 +79,17 @@ struct pkt_5tuple {
   uint16_t dst_port;
   uint32_t salt[5];
 } __attribute__((packed));
+
+struct map_key_t {
+        __u32 src_ip;
+        __u32 dst_ip;
+        __u16 src_port;
+        __u16 dst_port;
+}; __attribute__((packed));
+
+struct map_val_t {
+		time_t t;
+}; __attribute__((packed));
 
 
 

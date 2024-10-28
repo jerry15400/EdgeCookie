@@ -6,10 +6,12 @@
 #include <linux/ip.h>
 #include <linux/in.h>
 #include <bpf/bpf_endian.h>
+#include "switch_agent.h"
 
 #define CLIENT_R_IF 8 //client
 #define SERVER_R_IF 3 //server
 #define ATTACKER_R_IF 5 //attacker
+#define MAX_ENTRY 700000
 
 struct global_data {
     int client_r_if_order;
@@ -36,6 +38,13 @@ struct {
 	__uint(value_size, sizeof(int));
 	__uint(max_entries, 48);
 } xsks SEC(".maps");
+
+struct {
+        __uint(type, BPF_MAP_TYPE_HASH);
+        __uint(max_entries, MAX_ENTRY);
+        __type(key, struct map_key_t);
+        __type(value, struct map_val_t);
+} time_map SEC(".maps");
 
 struct global_data global = {0};
 static int init = 0;
