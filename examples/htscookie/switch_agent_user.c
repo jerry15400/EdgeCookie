@@ -462,12 +462,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 
 				long rtt;
 
-				if(val_p)
-				{
-					printf("found time %ld\n",(val.tv.tv_sec*1000000+val.tv.tv_usec)/1000);
-					rtt=((tv.tv_sec*1000000+tv.tv_usec))-(val.tv.tv_sec*1000000+val.tv.tv_usec); // in ms
-					printf("rtt=%ld\n",rtt);
-				}
+				if(val_p) rtt=((tv.tv_sec*1000000+tv.tv_usec))-(val.tv.tv_sec*1000000+val.tv.tv_usec); // in microsecond
 
 				if(hash_option == HARAKA)
 					haraka256((uint8_t*)&hashcookie, (uint8_t*)&flows[worker_id], 4 , 32);
@@ -480,8 +475,9 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					return -1;
 				}
 				/*test for unconditionally replied RST packet*/
-				if(!bloom_filter_test(bf,&ip->saddr,4))
+				if(!bloom_filter_test(bf,&ip->saddr,4)&&rtt<MAX_RTT*1000)
 				{
+					printf("go rst connect\n");
 					bloom_filter_put(bf,&ip->saddr,4);
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
 					tcp->rst=1;
@@ -511,6 +507,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					ip->daddr^=ip->saddr;
 					ip->saddr^=ip->daddr;
 				}
+				printf("go number translation\n");
 				
                 /*  TCP data length = 0  , conctate apache opt*/
                 //printf("%d\n",bpf_ntohs(ip->tot_len) - (ip->ihl*4) - (tcp->doff*4));
