@@ -465,8 +465,8 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				if(val_p)
 				{
 					printf("found time %ld\n",(val.tv.tv_sec*1000000+val.tv.tv_usec)/1000);
-					rtt=((tv.tv_sec*1000000+tv.tv_usec)/1000)-(val.tv.tv_sec*1000000+val.tv.tv_usec)/1000; // in ms
-					printf("rtt=%ld ms\n",rtt);
+					rtt=((tv.tv_sec*1000000+tv.tv_usec))-(val.tv.tv_sec*1000000+val.tv.tv_usec); // in ms
+					printf("rtt=%ld\n",rtt);
 				}
 
 				if(hash_option == HARAKA)
