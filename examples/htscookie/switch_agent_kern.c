@@ -6,12 +6,24 @@
 #include <linux/ip.h>
 #include <linux/in.h>
 #include <bpf/bpf_endian.h>
-#include "switch_agent.h"
+#include <time.h>
+
 
 #define CLIENT_R_IF 8 //client
 #define SERVER_R_IF 3 //server
 #define ATTACKER_R_IF 5 //attacker
 #define MAX_ENTRY 700000
+
+struct map_key_t {
+        __u32 src_ip;
+        __u32 dst_ip;
+        __u16 src_port;
+        __u16 dst_port;
+};
+
+struct map_val_t {
+		time_t t;
+};
 
 struct global_data {
     int client_r_if_order;
