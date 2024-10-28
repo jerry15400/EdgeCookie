@@ -316,11 +316,17 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 			}
 			if(bloom_filter_test(bf,&ip->saddr,4))
 			{
-				printf("tsecr=%d\n",ts->tsecr);
-				printf("second syn found in bloom filter\n");
-				int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
-				ts->tsecr=syn_cache[index];
-				syn_cache[index]=0;
+				//int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
+				//ts->tsecr=syn_cache[index];
+				//syn_cache[index]=0;
+				
+				/*ts->tsecr=hashcookie*/
+				if(hash_option == HARAKA)
+					haraka256((uint8_t*)&(ts->tsecr), (uint8_t*)&flows[worker_id], 4 , 32);
+				
+				else if (hash_option == HSIPHASH)
+					ts->tsecr = hsiphash(ip->saddr,ip->daddr,tcp->source,tcp->dest);
+				
 				return forward(eth,ip);
 			}
 			
@@ -447,8 +453,8 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				{
 					printf("not in bloom filter\n");
 					bloom_filter_put(bf,&ip->saddr,4);
-					int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
-					syn_cache[index]=hashcookie;
+					//int index=hsiphash_ip(ip->saddr,map_seeds[ip->saddr& 0xffff])%10000000;
+					//syn_cache[index]=hashcookie;
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
 					tcp->rst=1;
 					tcp->ack=0;
