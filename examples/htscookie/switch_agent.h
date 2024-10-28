@@ -85,11 +85,11 @@ struct map_key_t {
         __u32 dst_ip;
         __u16 src_port;
         __u16 dst_port;
-}; __attribute__((packed));
+} __attribute__((packed));
 
 struct map_val_t {
 		time_t t;
-}; __attribute__((packed));
+} __attribute__((packed));
 
 
 
