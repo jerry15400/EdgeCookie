@@ -460,9 +460,13 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				struct map_val_t val;
 				struct map_val_t* val_p = bpf_map_lookup_elem(fd,&key,&val);
 
+				time_t rtt;
+
 				if(val_p)
 				{
 					printf("found time %ld\n",val.t);
+					rtt=(t-val.t)*1000; // in ms
+					printf("rtt=%ld ms\n",rtt);
 				}
 
 				if(hash_option == HARAKA)
