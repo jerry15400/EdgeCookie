@@ -186,6 +186,8 @@ SEC("prog") int xdp_router(struct __sk_buff *skb) {
                     val.ts_val_s = ts->tsval;
                     ts->tsval = val.hybrid_cookie;
 
+                    if(!val.delta) return TC_ACT_OK;  ////rst connect -> skip handover
+
                     /*  Tcp handover   */
                     tcp->seq = bpf_htonl(bpf_ntohl(tcp->seq) + val.delta);
                     bpf_map_update_elem(&conntrack_map,&key,&val,BPF_EXIST);

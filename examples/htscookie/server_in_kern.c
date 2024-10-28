@@ -413,14 +413,18 @@ SEC("prog") int xdp_router(struct xdp_md *ctx) {
                             modify =1;
                         }
 
+                        if(modify) bpf_map_update_elem(&conntrack_map,&key,&val,BPF_EXIST);
+
+                        if(!val.delta) return XDP_PASS; //rst connect -> skip handover
+
                         /*  TCP handover     */
+
                         new_ack_seq = bpf_htonl(bpf_ntohl(tcp->ack_seq) - val.delta);
                         tcp->ack_seq = new_ack_seq;
                         __u32 new_tsecr = val.ts_val_s;
                         ts->tsecr = new_tsecr; /*   convert ecr to server's ts_val */
 
-                        if(modify)
-                            bpf_map_update_elem(&conntrack_map,&key,&val,BPF_EXIST);
+                            
                         
                         DEBUG_PRINT("SERVER_IN: Packet (after ack -= delta) seq = %u, ack = %u\n",bpf_ntohl(tcp->seq), bpf_ntohl(tcp->ack_seq));
                         tcp_csum = bpf_csum_diff(&rx_ack_seq, 4, &new_ack_seq, 4, ~tcp_csum);
