@@ -28,7 +28,7 @@
 #include "address.h"
 #include "bloom.h"
 #include "hashf.h"
-#include <time.h>
+#include <sys/time.h>
 
 #define MSTONS 1000000
 #define TS_START bpf_ntohl(0x01010000)
@@ -88,7 +88,7 @@ struct map_key_t {
 } __attribute__((packed));
 
 struct map_val_t {
-		time_t t;
+		struct timeval tv;
 } __attribute__((packed));
 
 

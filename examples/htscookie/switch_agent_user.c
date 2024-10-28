@@ -267,8 +267,8 @@ static void init_global_maps(){
 /* Main packet processing logic*/
 int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, unsigned worker_id)
 {
-	time_t t;
-	time(&t);
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
 	if(opt_drop==1){
 		return -1;
 	}
@@ -366,8 +366,8 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				.dst_port = tcp->dest
 			};
 
-			struct map_val_t val = {.t=t};
-			printf("store time %ld\n",t);
+			struct map_val_t val = {.tv=tv};
+			printf("store time %ld\n",(tv.tv_sec*1000000+tv.tv_usec)/1000);
 
 			bpf_map_update_elem(fd,&key,&val,BPF_ANY);
 
@@ -460,15 +460,13 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 				struct map_val_t val;
 				struct map_val_t* val_p = bpf_map_lookup_elem(fd,&key,&val);
 
-				time_t rtt;
+				long rtt;
 
 				if(val_p)
 				{
-					printf("found time %ld\n",val.t);
-					//rtt=(t-val.t)*1000; // in ms
-					time(&rtt);
-					printf("rtt=%ld\n",rtt);
-					//printf("t=%ld\n",t);
+					printf("found time %ld\n",(val.tv.tv_sec*1000000+val.tv.tv_usec)/1000);
+					rtt=((tv.tv_sec*1000000+tv.tv_usec)/1000)-(val.tv.tv_sec*1000000+val.tv.tv_usec)/1000; // in ms
+					printf("rtt=%ld ms\n",rtt);
 				}
 
 				if(hash_option == HARAKA)

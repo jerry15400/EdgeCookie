@@ -6,7 +6,7 @@
 #include <linux/ip.h>
 #include <linux/in.h>
 #include <bpf/bpf_endian.h>
-#include <time.h>
+#include <sys/time.h>
 
 
 #define CLIENT_R_IF 8 //client
@@ -22,7 +22,7 @@ struct map_key_t {
 };
 
 struct map_val_t {
-		time_t t;
+		struct timeval t;
 };
 
 struct global_data {
