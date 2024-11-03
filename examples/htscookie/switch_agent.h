@@ -32,7 +32,7 @@
 
 #define MSTONS 1000000
 #define TS_START bpf_ntohl(0x01010000)
-#define MAX_RTT 300 // in millisecond
+#define MAX_RTT 0 // in millisecond
 
 #if defined(DEBUGALL) || defined(DEBUGSA)
 #define DEBUG 1
