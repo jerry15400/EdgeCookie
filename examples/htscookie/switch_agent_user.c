@@ -474,7 +474,7 @@ int xsknf_packet_processor(void *pkt, unsigned *len, unsigned ingress_ifindex, u
 					return -1;
 				}
 				/*for unconditionally replied RST packet*/
-				if(!bloom_filter_test(bf,&ip->saddr,4)&&rtt<MAX_RTT*1000)
+				if(!bloom_filter_test(bf,&ip->saddr,4)&&rtt>=MIN_RTT*1000)
 				{
 					bloom_filter_put(bf,&ip->saddr,4);
 					uint16_t old_flag=*(uint16_t*)((void*)tcp+12);
